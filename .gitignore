@@ -17,3 +17,7 @@ hs_err_pid*
 # Common build files
 *.xml
 *.iml
+
+
+.idea
+
