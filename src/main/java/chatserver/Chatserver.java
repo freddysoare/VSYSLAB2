@@ -13,7 +13,6 @@ import util.Config;
 
 public class Chatserver implements IChatserverCli, Runnable {
 
-    /* Momo */
 	private String componentName;
 	public InputStream userRequestStream;
     public PrintStream userResponseStream;
