@@ -26,8 +26,8 @@
       <file leaf-file-name="Chatserver.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/chatserver/Chatserver.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="102">
-              <caret line="15" column="14" selection-start-line="15" selection-start-column="14" selection-end-line="15" selection-end-column="14" />
+            <state relative-caret-position="391">
+              <caret line="32" column="64" selection-start-line="32" selection-start-column="61" selection-end-line="32" selection-end-column="64" />
               <folding />
             </state>
           </provider>
@@ -252,12 +252,12 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1482793527385</updated>
-      <workItem from="1482793530250" duration="146000" />
+      <workItem from="1482793530250" duration="278000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="146000" />
+    <option name="totallyTimeSpent" value="278000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1096" extended-state="6" />
@@ -303,8 +303,8 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/main/java/chatserver/Chatserver.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="102">
-          <caret line="15" column="14" selection-start-line="15" selection-start-column="14" selection-end-line="15" selection-end-column="14" />
+        <state relative-caret-position="391">
+          <caret line="32" column="64" selection-start-line="32" selection-start-column="61" selection-end-line="32" selection-end-column="64" />
           <folding />
         </state>
       </provider>
