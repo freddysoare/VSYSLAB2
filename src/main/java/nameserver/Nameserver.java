@@ -3,14 +3,17 @@ package nameserver;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.rmi.RemoteException;
 
+import nameserver.exceptions.AlreadyRegisteredException;
+import nameserver.exceptions.InvalidDomainException;
 import util.Config;
 
 /**
  * Please note that this class is not needed for Lab 1, but will later be used
  * in Lab 2. Hence, you do not have to implement it for the first submission.
  */
-public class Nameserver implements INameserverCli, Runnable {
+public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 	private String componentName;
 	private Config config;
@@ -71,4 +74,23 @@ public class Nameserver implements INameserverCli, Runnable {
 		// TODO: start the nameserver
 	}
 
+	@Override
+	public void registerNameserver(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
+
+	}
+
+	@Override
+	public void registerUser(String username, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
+
+	}
+
+	@Override
+	public INameserverForChatserver getNameserver(String zone) throws RemoteException {
+		return null;
+	}
+
+	@Override
+	public String lookup(String username) throws RemoteException {
+		return null;
+	}
 }
