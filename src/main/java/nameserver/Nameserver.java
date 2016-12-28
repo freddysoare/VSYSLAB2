@@ -34,6 +34,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	private ConcurrentHashMap<String, INameserver> children;
 	private ConcurrentHashMap<String, String> userAdresses;
 	INameserver remote;
+	INameserverForChatserver remoteC;
 
 
 	/**
@@ -72,35 +73,44 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				domain = "";
 			}
 			remote = (INameserver) UnicastRemoteObject.exportObject(this, 0);
-			INameserverForChatserver remoteC = (INameserverForChatserver) remote;
+			remoteC = (INameserverForChatserver) remote;
 
 
 
-
-			if(domain.length() == 0) {
-				// create and export the registry instance on localhost at the
-				// specified port
+			//case where root-ns is started
+			if(domain.length()  == 0) {
 				registry = LocateRegistry.createRegistry(config.getInt("registry.port"));
-				// create a remote object of this server object
-				// bind the obtained remote object on specified binding name in the
-				// registry
 				registry.bind(config.getString("root_id"), remote);
-				//registry.bind("c"+config.getString("root_id"), remoteC);
-				//TODO
-
 			} else {
-
-
+			//case when ns is attached to the hierarchy
 					try {
 						registry = LocateRegistry.getRegistry("localhost", config.getInt("registry.port"));
 						INameserver rootNS = (INameserver) registry.lookup(config.getString("root_id"));
-						rootNS.registerNameserver(domain,remote,null);
+						rootNS.registerNameserver(domain,remote,remoteC);
 					} catch (NotBoundException e) {
+						try {
+							this.exit();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
 						e.printStackTrace();
+						return;
 					} catch (AlreadyRegisteredException e) {
+						try {
+							this.exit();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
 						e.printStackTrace();
+						return;
 					} catch (InvalidDomainException e) {
+						try {
+							this.exit();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
 						e.printStackTrace();
+						return;
 					}
 
 
@@ -108,8 +118,18 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 
 		} catch (RemoteException e) {
+			try {
+				this.exit();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
 			throw new RuntimeException("Error while starting server.", e);
 		} catch (AlreadyBoundException e) {
+			try {
+				this.exit();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
 			throw new RuntimeException(
 					"Error while binding remote object to registry.", e);
 		}
@@ -152,6 +172,8 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	@Override
 	public String exit() throws IOException {
 
+
+
 		if(userResponseStream != null) {
 			userResponseStream.close();
 		}
@@ -186,24 +208,13 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 		String[] domainparts = domain.split("\\.");
 		if(domainparts.length>1) {
-			userResponseStream.println("#2");
-
+			//digest domain
 			String subdomain = this.digestDomain(domain);
-			userResponseStream.println("**"+domainparts[domainparts.length-1]);
-			userResponseStream.println("**"+subdomain);
-
-			//INameserver remote = (INameserver) registry.lookup(domainparts[domainparts.length-1]); //TODO rec
-
 			INameserver remote = children.get(domainparts[domainparts.length-1]);
-
 			remote.registerNameserver(subdomain,nameserver,nameserverForChatserver);
 
 		} else {
-			userResponseStream.println("#3");
-			userResponseStream.println("**"+domainparts.length);
-
 			if(domain.equals(this.domain)) {
-				userResponseStream.println("#4");
 				//Add to root
 
 				INameserver remote = null;
@@ -214,9 +225,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				}
 				remote.addChildren(domain,nameserver,nameserverForChatserver);
 			} else  {
-				userResponseStream.println("#5");
 				this.addChildren(domain,nameserver,nameserverForChatserver);
-
 			}
 
 
@@ -224,38 +233,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 
 
-		//WRONG Way to digest domain
-		/**
-		userResponseStream.println("#1");
-		String[] domainparts = domain.split(".");
-		if(domainparts.length>=1) {
-			userResponseStream.println("#2");
-			String subdomain = domainparts[0];
-			for(int i = 1; i<domainparts.length-1; i++) {
-				subdomain+="."+domainparts[i];
-			}
-			try {
-				INameserver remote = (INameserver) registry.lookup(config.getString(domainparts[0]));
-				//digest domain
-				remote.registerNameserver(subdomain,nameserver,nameserverForChatserver);
-			} catch (NotBoundException e) {
-				e.printStackTrace();
-			}
-		} else {
-			userResponseStream.println("#3");
-			if(this.addChildren(domain) == true) {
-				try {
-					registry.bind(config.getString("domain"), nameserver);
-					//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
-					//TODO C Registry
-				} catch (AlreadyBoundException e) {
-					e.printStackTrace();
-				}
-			} else {
-				//TODO Excpetion
-			}
-		}
-		**/
+
 
 	}
 
@@ -277,7 +255,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	@Override
 	public void addChildren(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver)
 			throws AlreadyRegisteredException, RemoteException {
-		if(!children.contains(domain)) {
+		if(!children.containsKey(domain)) {
 			this.children.put(domain,nameserver);
 		} else {
 			throw new AlreadyRegisteredException("Zone already exists");
@@ -290,10 +268,10 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	 *            component
 	 */
 	public static void main(String[] args) {
-		//Nameserver nameserver = new Nameserver(args[0], new Config(args[0]),System.in, System.out);
+		Nameserver nameserver = new Nameserver(args[0], new Config(args[0]),System.in, System.out);
 
-		Nameserver nameserver = new Nameserver("serv", new Config("ns-vienna-at"),
-				System.in, System.out);
+		//Nameserver nameserver = new Nameserver("serv", new Config("ns-at"),
+		//		System.in, System.out);
 	}
 
 	public String digestDomain(String domain) {
