@@ -199,7 +199,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				userResponseStream.println("**"+domainparts[domainparts.length-1]);
 				userResponseStream.println("**"+subdomain);
 
-				INameserver remote = (INameserver) registry.lookup(domain+domainparts[domainparts.length-1]);
+				INameserver remote = (INameserver) registry.lookup(domainparts[domainparts.length-1]);
 				remote.registerNameserver(subdomain,nameserver,nameserverForChatserver);
 			} catch (NotBoundException e) {
 				e.printStackTrace();
@@ -208,7 +208,27 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 			userResponseStream.println("#3");
 			userResponseStream.println("**"+domainparts.length);
 
-			if(this.addChildren(domain) == true) {
+			if(domain.equals(this.domain)) {
+				userResponseStream.println("#4");
+				//Add to root
+
+				INameserver remote = null;
+				try {
+					remote = (INameserver) registry.lookup(config.getString("root_id"));
+				} catch (NotBoundException e) {
+					e.printStackTrace();
+				}
+				if(remote.addChildren(domain) == true) {
+						try {
+							registry.bind(config.getString("domain"), nameserver);
+							//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
+							//TODO C Registry
+						} catch (AlreadyBoundException e) {
+							e.printStackTrace();
+						}
+					}
+			} else if(this.addChildren(domain) == true) {
+				userResponseStream.println("#5");
 				try {
 					registry.bind(config.getString("domain"), nameserver);
 					//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
@@ -216,7 +236,8 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				} catch (AlreadyBoundException e) {
 					e.printStackTrace();
 				}
-			} else {
+			}
+			else {
 				//TODO Excpetion
 			}
 
@@ -275,7 +296,8 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		return null;
 	}
 
-	public boolean addChildren(String domain) {
+	@Override
+	public boolean addChildren(String domain) throws RemoteException {
 		if(!children.contains(domain)) {
 			this.children.add(domain);
 			return true;
