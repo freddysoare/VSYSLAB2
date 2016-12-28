@@ -19,7 +19,9 @@ public class Main {
         try {
             Registry registry = LocateRegistry.getRegistry("localhost", 10059);
             System.out.println("2");
-            INameserver server = (INameserver) registry.lookup("vienna.at");
+            INameserverForChatserver server = (INameserverForChatserver) registry.lookup("root-nameserver");
+            INameserverForChatserver serverat = (INameserverForChatserver) server.getNameserver("at");
+            INameserverForChatserver servervie = (INameserverForChatserver) serverat.getNameserver("vienna");
             System.out.println("3");
 
 
@@ -29,9 +31,6 @@ public class Main {
                 String input = userInputReader.readLine();
                 if (input == null || input.startsWith("!stop")) {
                     break;
-                } else if (input.startsWith("!ping")) {
-                    String response = server.lookup("");
-                    System.out.println("Received response from Server: " + response);
                 } else {
                     System.out.println("Command not known!");
                 }

@@ -32,6 +32,8 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	private BufferedReader reader;
 	private String domain;
 	private ConcurrentHashMap<String, INameserver> children;
+	private ConcurrentHashMap<String, String> userAdresses;
+	INameserver remote;
 
 
 	/**
@@ -53,6 +55,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		this.reader = new BufferedReader(new InputStreamReader(userRequestStream));
 		domain="";
 		children = new ConcurrentHashMap<>();
+		userAdresses = new ConcurrentHashMap<>();
 
 		run();
 		// TODO
@@ -68,8 +71,9 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 			} catch (Exception e) {
 				domain = "";
 			}
-			//INameserverForChatserver remoteC = (INameserverForChatserver) UnicastRemoteObject.exportObject(this, 0);
-			INameserver remote = (INameserver) UnicastRemoteObject.exportObject(this, 0);
+			remote = (INameserver) UnicastRemoteObject.exportObject(this, 0);
+			INameserverForChatserver remoteC = (INameserverForChatserver) remote;
+
 
 
 
@@ -208,27 +212,11 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				} catch (NotBoundException e) {
 					e.printStackTrace();
 				}
-				if(remote.addChildren(domain,nameserver,nameserverForChatserver) == true) {
-
-							//registry.bind(config.getString("domain"), nameserver);
-							//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
-							//TODO C Registry
-
-				}
-			} else if(this.addChildren(domain,nameserver,nameserverForChatserver) == true) {
+				remote.addChildren(domain,nameserver,nameserverForChatserver);
+			} else  {
 				userResponseStream.println("#5");
-				userResponseStream.println("*"+domain);
-				userResponseStream.println("**"+this.domain);
-				userResponseStream.println("***"+domain+"."+this.domain);
+				this.addChildren(domain,nameserver,nameserverForChatserver);
 
-
-				//registry.bind(domain+"."+this.domain, nameserver); //TODO Recursive Check
-				//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
-				//TODO C Registry
-
-			}
-			else {
-				//TODO Excpetion
 			}
 
 
@@ -273,26 +261,26 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 	@Override
 	public void registerUser(String username, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
-
+		userAdresses.put(username,address);
 	}
 
 	@Override
 	public INameserverForChatserver getNameserver(String zone) throws RemoteException {
-		return null;
+		return children.get(zone);
 	}
 
 	@Override
 	public String lookup(String username) throws RemoteException {
-		return "Poing";
+		return userAdresses.get(username);
 	}
 
 	@Override
-	public boolean addChildren(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver ) throws RemoteException {
+	public void addChildren(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver)
+			throws AlreadyRegisteredException, RemoteException {
 		if(!children.contains(domain)) {
 			this.children.put(domain,nameserver);
-			return true;
 		} else {
-			return false;
+			throw new AlreadyRegisteredException("Zone already exists");
 		}
 	}
 
@@ -306,7 +294,6 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 		Nameserver nameserver = new Nameserver("serv", new Config("ns-vienna-at"),
 				System.in, System.out);
-		// TODO: start the nameserver
 	}
 
 	public String digestDomain(String domain) {
