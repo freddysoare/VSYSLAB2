@@ -230,7 +230,10 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 			} else if(this.addChildren(domain) == true) {
 				userResponseStream.println("#5");
 				try {
-					registry.bind(config.getString("domain"), nameserver);
+					userResponseStream.println("**"+domain);
+					userResponseStream.println("**"+this.domain);
+
+					registry.bind(domain+this.domain, nameserver); //TODO Recursive Check
 					//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
 					//TODO C Registry
 				} catch (AlreadyBoundException e) {
