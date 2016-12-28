@@ -187,15 +187,17 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	@Override
 	public void registerNameserver(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
 
-		String[] domainparts = domain.split(".");
-
+		String[] domainparts = domain.split("\\.");
 		if(domainparts.length>1) {
+			userResponseStream.println("#2");
 			try {
 
 				String subdomain = domainparts[0];
 				for(int i = 1; i<domainparts.length-1; i++) {
 					subdomain+="."+domainparts[i];
 				}
+				userResponseStream.println("**"+domainparts[domainparts.length-1]);
+				userResponseStream.println("**"+subdomain);
 
 				INameserver remote = (INameserver) registry.lookup(domain+domainparts[domainparts.length-1]);
 				remote.registerNameserver(subdomain,nameserver,nameserverForChatserver);
@@ -203,6 +205,8 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				e.printStackTrace();
 			}
 		} else {
+			userResponseStream.println("#3");
+			userResponseStream.println("**"+domainparts.length);
 
 			if(this.addChildren(domain) == true) {
 				try {
