@@ -166,7 +166,11 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 	@Override
 	public String addresses() throws IOException {
-		return null;
+		StringBuilder sb = new StringBuilder();
+		for(String child: userAdresses.keySet()) {
+			sb.append(child+"\n");
+		}
+		return sb.toString();
 	}
 
 	@Override
@@ -190,12 +194,14 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 					+ e.getMessage());
 		}
 
-		try {
-			// unbind the remote object so that a client can't find it anymore
-			registry.unbind(config.getString("root_id"));
-		} catch (Exception e) {
-			System.err.println("Error while unbinding object: "
-					+ e.getMessage());
+		if(domain.length()==0) {
+			try {
+				// unbind the remote object so that a client can't find it anymore
+				registry.unbind(config.getString("root_id"));
+			} catch (Exception e) {
+				System.err.println("Error while unbinding object: "
+						+ e.getMessage());
+			}
 		}
 
 		return null;
