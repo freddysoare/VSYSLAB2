@@ -31,7 +31,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	private Registry registry;
 	private BufferedReader reader;
 	private String domain;
-	private ArrayList<String> children;
+	private ConcurrentHashMap<String, INameserver> children;
 
 
 	/**
@@ -52,7 +52,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		this.userResponseStream = userResponseStream;
 		this.reader = new BufferedReader(new InputStreamReader(userRequestStream));
 		domain="";
-		children = new ArrayList<>();
+		children = new ConcurrentHashMap<>();
 
 		run();
 		// TODO
@@ -86,16 +86,19 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 			} else {
 
-				try {
-					registry = LocateRegistry.getRegistry("localhost", config.getInt("registry.port"));
-					registerNameserver(domain,remote,null);
-				} catch (AlreadyRegisteredException e) {
-					e.printStackTrace();
-					//TODO: Handle Exp
-				} catch (InvalidDomainException e) {
-					e.printStackTrace();
-					//TODO: Handle Exp
-				}
+
+					try {
+						registry = LocateRegistry.getRegistry("localhost", config.getInt("registry.port"));
+						INameserver rootNS = (INameserver) registry.lookup(config.getString("root_id"));
+						rootNS.registerNameserver(domain,remote,null);
+					} catch (NotBoundException e) {
+						e.printStackTrace();
+					} catch (AlreadyRegisteredException e) {
+						e.printStackTrace();
+					} catch (InvalidDomainException e) {
+						e.printStackTrace();
+					}
+
 
 			}
 
@@ -115,7 +118,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 					exit();
 					return;
 				} if(line.equals("!nameservers")) {
-					userResponseStream.println(this.addresses());
+					userResponseStream.println(this.nameservers());
 				} else {
 					userResponseStream.println("Unkown command.");
 				}
@@ -130,17 +133,16 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 	@Override
 	public String nameservers() throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		StringBuilder sb = new StringBuilder();
+		for(String child: children.keySet()) {
+			sb.append(child+"\n");
+		}
+		return sb.toString();
 	}
 
 	@Override
 	public String addresses() throws IOException {
-		StringBuilder sb = new StringBuilder();
-		for(String child: children) {
-			sb.append(child+"\n");
-		}
-		return sb.toString();
+		return null;
 	}
 
 	@Override
@@ -173,16 +175,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		return null;
 	}
 
-	/**
-	 * @param args
-	 *            the first argument is the name of the {@link Nameserver}
-	 *            component
-	 */
-	public static void main(String[] args) {
-		Nameserver nameserver = new Nameserver(args[0], new Config(args[0]),
-				System.in, System.out);
-		// TODO: start the nameserver
-	}
+
 
 	@Override
 	public void registerNameserver(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
@@ -190,20 +183,17 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		String[] domainparts = domain.split("\\.");
 		if(domainparts.length>1) {
 			userResponseStream.println("#2");
-			try {
 
-				String subdomain = domainparts[0];
-				for(int i = 1; i<domainparts.length-1; i++) {
-					subdomain+="."+domainparts[i];
-				}
-				userResponseStream.println("**"+domainparts[domainparts.length-1]);
-				userResponseStream.println("**"+subdomain);
+			String subdomain = this.digestDomain(domain);
+			userResponseStream.println("**"+domainparts[domainparts.length-1]);
+			userResponseStream.println("**"+subdomain);
 
-				INameserver remote = (INameserver) registry.lookup(domainparts[domainparts.length-1]);
-				remote.registerNameserver(subdomain,nameserver,nameserverForChatserver);
-			} catch (NotBoundException e) {
-				e.printStackTrace();
-			}
+			//INameserver remote = (INameserver) registry.lookup(domainparts[domainparts.length-1]); //TODO rec
+
+			INameserver remote = children.get(domainparts[domainparts.length-1]);
+
+			remote.registerNameserver(subdomain,nameserver,nameserverForChatserver);
+
 		} else {
 			userResponseStream.println("#3");
 			userResponseStream.println("**"+domainparts.length);
@@ -218,27 +208,24 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				} catch (NotBoundException e) {
 					e.printStackTrace();
 				}
-				if(remote.addChildren(domain) == true) {
-						try {
-							registry.bind(config.getString("domain"), nameserver);
+				if(remote.addChildren(domain,nameserver,nameserverForChatserver) == true) {
+
+							//registry.bind(config.getString("domain"), nameserver);
 							//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
 							//TODO C Registry
-						} catch (AlreadyBoundException e) {
-							e.printStackTrace();
-						}
-					}
-			} else if(this.addChildren(domain) == true) {
-				userResponseStream.println("#5");
-				try {
-					userResponseStream.println("**"+domain);
-					userResponseStream.println("**"+this.domain);
 
-					registry.bind(domain+this.domain, nameserver); //TODO Recursive Check
-					//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
-					//TODO C Registry
-				} catch (AlreadyBoundException e) {
-					e.printStackTrace();
 				}
+			} else if(this.addChildren(domain,nameserver,nameserverForChatserver) == true) {
+				userResponseStream.println("#5");
+				userResponseStream.println("*"+domain);
+				userResponseStream.println("**"+this.domain);
+				userResponseStream.println("***"+domain+"."+this.domain);
+
+
+				//registry.bind(domain+"."+this.domain, nameserver); //TODO Recursive Check
+				//registry.bind("c"+config.getString("root_id"), nameserverForChatserver);
+				//TODO C Registry
+
 			}
 			else {
 				//TODO Excpetion
@@ -296,16 +283,39 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 	@Override
 	public String lookup(String username) throws RemoteException {
-		return null;
+		return "Poing";
 	}
 
 	@Override
-	public boolean addChildren(String domain) throws RemoteException {
+	public boolean addChildren(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver ) throws RemoteException {
 		if(!children.contains(domain)) {
-			this.children.add(domain);
+			this.children.put(domain,nameserver);
 			return true;
 		} else {
 			return false;
 		}
 	}
+
+	/**
+	 * @param args
+	 *            the first argument is the name of the {@link Nameserver}
+	 *            component
+	 */
+	public static void main(String[] args) {
+		//Nameserver nameserver = new Nameserver(args[0], new Config(args[0]),System.in, System.out);
+
+		Nameserver nameserver = new Nameserver("serv", new Config("ns-vienna-at"),
+				System.in, System.out);
+		// TODO: start the nameserver
+	}
+
+	public String digestDomain(String domain) {
+		String[] domainparts = domain.split("\\.");
+		String subdomain = domainparts[0];
+		for(int i = 1; i<domainparts.length-1; i++) {
+			subdomain+="."+domainparts[i];
+		}
+		return subdomain;
+	}
+
 }
