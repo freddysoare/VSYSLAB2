@@ -8,14 +8,10 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.MissingResourceException;
-import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import nameserver.exceptions.AlreadyRegisteredException;
 import nameserver.exceptions.InvalidDomainException;
-import rmi_test.IServer;
 import util.Config;
 
 /**
@@ -32,7 +28,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 	private BufferedReader reader;
 	private String domain;
 	private ConcurrentHashMap<String, INameserver> children;
-	private ConcurrentHashMap<String, String> userAdresses;
+	private ConcurrentHashMap<String, String> userAddresses;
 	INameserver remote;
 	INameserverForChatserver remoteC;
 
@@ -56,7 +52,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		this.reader = new BufferedReader(new InputStreamReader(userRequestStream));
 		domain="";
 		children = new ConcurrentHashMap<>();
-		userAdresses = new ConcurrentHashMap<>();
+		userAddresses = new ConcurrentHashMap<>();
 
 		run();
 		// TODO
@@ -88,32 +84,27 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 						INameserver rootNS = (INameserver) registry.lookup(config.getString("root_id"));
 						rootNS.registerNameserver(domain,remote,remoteC);
 					} catch (NotBoundException e) {
+						e.printStackTrace();
 						try {
 							this.exit();
 						} catch (IOException e1) {
 							e1.printStackTrace();
 						}
-						e.printStackTrace();
-						return;
 					} catch (AlreadyRegisteredException e) {
+						e.printStackTrace();
 						try {
 							this.exit();
 						} catch (IOException e1) {
 							e1.printStackTrace();
 						}
-						e.printStackTrace();
-						return;
 					} catch (InvalidDomainException e) {
+						e.printStackTrace(); //TODO use userOutputstream
 						try {
 							this.exit();
 						} catch (IOException e1) {
 							e1.printStackTrace();
 						}
-						e.printStackTrace();
-						return;
 					}
-
-
 			}
 
 
@@ -143,12 +134,20 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 					return;
 				} if(line.equals("!nameservers")) {
 					userResponseStream.println(this.nameservers());
-				} else {
+				} if(line.equals("!addresses")) {
+					userResponseStream.println(this.addresses());
+				}
+			else {
 					userResponseStream.println("Unkown command.");
 				}
 			}
 		} catch (IOException e) {
 			userResponseStream.println("No connection to Server");
+		}
+		try {
+			this.exit();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
 
 
@@ -161,14 +160,20 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		for(String child: children.keySet()) {
 			sb.append(child+"\n");
 		}
+		if(sb.length() > 0) {
+			sb.setLength(sb.length() - 1);
+		}
 		return sb.toString();
 	}
 
 	@Override
 	public String addresses() throws IOException {
 		StringBuilder sb = new StringBuilder();
-		for(String child: userAdresses.keySet()) {
-			sb.append(child+"\n");
+		for(String address: userAddresses.keySet()) {
+			sb.append(address+" "+ userAddresses.get(address)+"\n");
+		}
+		if(sb.length() > 0) {
+			sb.setLength(sb.length() - 1);
 		}
 		return sb.toString();
 	}
@@ -245,7 +250,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 	@Override
 	public void registerUser(String username, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
-		userAdresses.put(username,address);
+		userAddresses.put(username,address);
 	}
 
 	@Override
@@ -255,7 +260,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 
 	@Override
 	public String lookup(String username) throws RemoteException {
-		return userAdresses.get(username);
+		return userAddresses.get(username);
 	}
 
 	@Override

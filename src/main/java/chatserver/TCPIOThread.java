@@ -1,5 +1,8 @@
 package chatserver;
 
+import nameserver.exceptions.AlreadyRegisteredException;
+import nameserver.exceptions.InvalidDomainException;
+
 import java.io.*;
 import java.net.Socket;
 
@@ -36,7 +39,7 @@ class TCPIOThread implements Runnable {
                 if(loggedIn == true) {
                     if (clientCommand.startsWith("!lookup") && c.length >= 2) {
                         try {
-                            String ipadress = chatserver.getRegister().get(c[1]);
+                            String ipadress = chatserver.getNameserver(c[1]).lookup(c[1]);
                             if (ipadress != null && ipadress.length() != 0) {
                                 if (c.length == 3) {
                                     ipadress = "!slookup " + ipadress;
@@ -66,9 +69,21 @@ class TCPIOThread implements Runnable {
                             ci.out.flush();
                         }
                     } else if (clientCommand.startsWith("!register") && c.length == 2 && loggedIn == true) {
-                        chatserver.getRegister().put(clientName,c[1]);
-                        out.println("Successfully registered address for "+clientName+".");
-                        out.flush();
+
+                        //+++Aufgabe 2
+                        //chatserver.getRegister().put(clientName,c[1]);
+                        try {
+                            chatserver.getNameserver(clientName).registerUser(clientName,c[1]);
+                            out.println("Successfully registered address for "+clientName+".");
+                            out.flush();
+                        } catch (AlreadyRegisteredException e) {
+                            out.println(clientName+" already registered.");
+                            out.flush();
+                        } catch (InvalidDomainException e) {
+                            out.println("The nameserver "+clientName+" is not running.");
+                            out.flush();
+                        }
+                        //---Aufgabe 2
                     }
                     else if (clientCommand != null) {
                         out.println("Server: Wrong command!");

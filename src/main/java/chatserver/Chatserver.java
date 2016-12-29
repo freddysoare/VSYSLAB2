@@ -1,14 +1,19 @@
 package chatserver;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Set;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import nameserver.INameserverForChatserver;
+import nameserver.exceptions.InvalidDomainException;
 import util.Config;
 
 public class Chatserver implements IChatserverCli, Runnable {
@@ -26,6 +31,11 @@ public class Chatserver implements IChatserverCli, Runnable {
     private UDPManagerThread udpManagerThread;
     private ExecutorService executorService;
     BufferedReader reader;
+
+    //+++Aufgabe 2
+    private INameserverForChatserver nameserver;
+    private Registry registry;
+    //---Auftage 2
 
     /**
 	 * @param componentName
@@ -48,16 +58,38 @@ public class Chatserver implements IChatserverCli, Runnable {
         this.executorService = Executors.newCachedThreadPool();
         this.reader = new BufferedReader(new InputStreamReader(userRequestStream));
 
+        //+++Aufgabe 2
+        try {
+            registry = LocateRegistry.getRegistry(config.getString("registry.host"),config.getInt("registry.port"));
+            nameserver = (INameserverForChatserver) registry.lookup("root-nameserver");
+        } catch (RemoteException ex) {
+            ex.printStackTrace();
+            try {
+                this.exit();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (NotBoundException ex) {
+            ex.printStackTrace();
+            try {
+                this.exit();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        //---Aufgabe 2
+
         tcpManagerThread = new TCPManagerThread(this);
         new Thread(tcpManagerThread).start();
 
         udpManagerThread = new UDPManagerThread(this);
         new Thread(udpManagerThread).start();
 
-	}
+    }
 
     public void run() {
         try {
+
             while (userRequestStream != null) {
                 String line = reader.readLine();
                 if(line.equals("!exit")) {
@@ -71,6 +103,12 @@ public class Chatserver implements IChatserverCli, Runnable {
             }
         } catch (IOException e) {
             userResponseStream.println("No connection to Server");
+        }
+
+        try {
+            this.exit();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -179,6 +217,46 @@ public class Chatserver implements IChatserverCli, Runnable {
 
     public PrintStream getUserResponseStream() {
         return userResponseStream;
+    }
+
+    public Registry getRegistry() {
+        return registry;
+    }
+
+    public void setRegistry(Registry registry) {
+        this.registry = registry;
+    }
+
+    public INameserverForChatserver getNameserver() {
+        return nameserver;
+    }
+
+    public void setNameserver(INameserverForChatserver nameserver) {
+        this.nameserver = nameserver;
+    }
+
+    public INameserverForChatserver getNameserver(String domain) throws InvalidDomainException{
+
+        if(!(domain.length() > 0)) {
+            throw new InvalidDomainException("no nameserver found");
+        }
+
+        INameserverForChatserver subnameserver = nameserver;
+        ArrayList<String> domainparts = new ArrayList<>();
+        domainparts.addAll(Arrays.asList(domain.split("\\.")));
+        domainparts.remove(0);
+        Collections.reverse(domainparts);
+        for(String d : domainparts) {
+            try {
+                subnameserver = (INameserverForChatserver) subnameserver.getNameserver(d);
+                if(subnameserver == null) {
+                    throw new InvalidDomainException("no nameserver found");
+                }
+            } catch (RemoteException e) {
+                throw new InvalidDomainException(e.getMessage());
+            }
+        }
+        return subnameserver;
     }
 }
 
