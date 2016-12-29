@@ -82,27 +82,29 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 					try {
 						registry = LocateRegistry.getRegistry("localhost", config.getInt("registry.port"));
 						INameserver rootNS = (INameserver) registry.lookup(config.getString("root_id"));
-						rootNS.registerNameserver(domain,remote,remoteC);
+						synchronized (rootNS) {
+							rootNS.registerNameserver(domain, remote, remoteC);
+						}
 					} catch (NotBoundException e) {
-						e.printStackTrace();
+						userResponseStream.println(e.getMessage());
 						try {
 							this.exit();
 						} catch (IOException e1) {
-							e1.printStackTrace();
+							userResponseStream.println(e1.getMessage());
 						}
 					} catch (AlreadyRegisteredException e) {
-						e.printStackTrace();
+						userResponseStream.println(e.getMessage());
 						try {
 							this.exit();
 						} catch (IOException e1) {
-							e1.printStackTrace();
+							userResponseStream.println(e1.getMessage());
 						}
 					} catch (InvalidDomainException e) {
-						e.printStackTrace(); //TODO use userOutputstream
+						userResponseStream.println(e.getMessage());
 						try {
 							this.exit();
 						} catch (IOException e1) {
-							e1.printStackTrace();
+							userResponseStream.println(e1.getMessage());
 						}
 					}
 			}
@@ -112,14 +114,14 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 			try {
 				this.exit();
 			} catch (IOException e1) {
-				e1.printStackTrace();
+				userResponseStream.println(e1.getMessage());
 			}
 			throw new RuntimeException("Error while starting server.", e);
 		} catch (AlreadyBoundException e) {
 			try {
 				this.exit();
 			} catch (IOException e1) {
-				e1.printStackTrace();
+				userResponseStream.println(e1.getMessage());
 			}
 			throw new RuntimeException(
 					"Error while binding remote object to registry.", e);
@@ -132,12 +134,11 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				if(line.equals("!exit")) {
 					exit();
 					return;
-				} if(line.equals("!nameservers")) {
+				} else if(line.equals("!nameservers")) {
 					userResponseStream.println(this.nameservers());
-				} if(line.equals("!addresses")) {
+				} else if(line.equals("!addresses")) {
 					userResponseStream.println(this.addresses());
-				}
-			else {
+				} else {
 					userResponseStream.println("Unkown command.");
 				}
 			}
@@ -147,7 +148,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 		try {
 			this.exit();
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			userResponseStream.println(e1.getMessage());
 		}
 
 
@@ -232,7 +233,7 @@ public class Nameserver implements INameserverCli, INameserver, Runnable {
 				try {
 					remote = (INameserver) registry.lookup(config.getString("root_id"));
 				} catch (NotBoundException e) {
-					e.printStackTrace();
+					userResponseStream.println(e.getMessage());
 				}
 				remote.addChildren(domain,nameserver,nameserverForChatserver);
 			} else  {
