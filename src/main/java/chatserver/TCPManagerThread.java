@@ -14,7 +14,7 @@ class TCPManagerThread implements Runnable {
     private ServerSocket serverSocket;
     private ArrayList<TCPIOThread> tcpioThreads;
 
-    public TCPManagerThread(Chatserver chatserver) {
+    public TCPManagerThread(chatserver.Chatserver chatserver) {
         tcpioThreads = new ArrayList<>();
         this.chatserver = chatserver;
         try {
