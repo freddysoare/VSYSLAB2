@@ -18,4 +18,6 @@ public interface INameserver extends INameserverForChatserver, Remote {
 			throws RemoteException, AlreadyRegisteredException,
 			InvalidDomainException;
 
+	public void addChildren(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver)
+			throws AlreadyRegisteredException, RemoteException;
 }

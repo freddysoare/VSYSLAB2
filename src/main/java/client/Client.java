@@ -1,12 +1,18 @@
 package client;
 
+import org.bouncycastle.util.encoders.Base64;
 import util.Config;
+import util.Keys;
 
 import java.io.*;
 import java.net.*;
 import java.nio.Buffer;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Queue;
 import java.util.concurrent.*;
+import java.security.Key;
+import javax.crypto.Mac;
 
 
 public class Client implements IClientCli, Runnable {
@@ -397,6 +403,40 @@ public class Client implements IClientCli, Runnable {
     public Config getConfig() {
         return config;
     }
+
+    String createHMAC(String message)
+    {
+        Key secretKey = null;
+        Mac hMac = null;
+        try
+        {
+            secretKey = Keys.readSecretKey(new File(config.getString("hmac.key")));
+            hMac = Mac.getInstance("HmacSHA256");
+            hMac.init(secretKey);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        catch (NoSuchAlgorithmException e)
+        {
+            e.printStackTrace();
+        }
+        catch (InvalidKeyException e)
+        {
+            e.printStackTrace();
+        }
+        // MESSAGE is the message to sign in bytes
+        hMac.update(message.getBytes());
+        return new String(hMac.doFinal());
+    }
+
+    public boolean check_HMAC(String message, String HMAC)
+    {
+        return createHMAC(message).equals(HMAC);
+    }
+
+
 
     /**
      * @param args
