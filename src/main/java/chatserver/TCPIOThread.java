@@ -1,10 +1,18 @@
 package chatserver;
 
+import com.sun.org.apache.xml.internal.security.exceptions.Base64DecodingException;
 import nameserver.exceptions.AlreadyRegisteredException;
 import nameserver.exceptions.InvalidDomainException;
+import util.AESChannel;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.*;
 import java.net.Socket;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Created by alfredmincinoiu on 26/12/2016.
@@ -17,6 +25,7 @@ class TCPIOThread implements Runnable {
     private PrintWriter out;
     private boolean loggedIn;
     private String clientName;
+    private AESChannel aesChannel;
 
 
     public TCPIOThread(Chatserver chatserver, Socket tcpSocket) {
@@ -26,8 +35,13 @@ class TCPIOThread implements Runnable {
         try {
             in = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
             out = new PrintWriter(new OutputStreamWriter(tcpSocket.getOutputStream()));
+            aesChannel = new AESChannel(out);
         } catch (IOException e) {
             chatserver.getUserResponseStream().println("Server broke down");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
         }
     }
 
@@ -35,6 +49,15 @@ class TCPIOThread implements Runnable {
         try {
             String clientCommand;
             while ((clientCommand = in.readLine()) != null)  {
+
+                System.out.println("[SERVER] RECEIVED: " + clientCommand);
+                System.out.println("[SERVER] DECODED: " + decypher_AES(clientCommand));
+                /*if(!loggedIn) {
+                    clientCommand = decypher_RSA(clientCommand);
+                } else {
+                    clientCommand = decypher_AES(clientCommand);
+                }*/
+
                 String[] c = clientCommand.split(" ");
                 if(loggedIn == true) {
                     if (clientCommand.startsWith("!lookup") && c.length >= 2) {
@@ -128,6 +151,18 @@ class TCPIOThread implements Runnable {
         } catch (IOException ioe) {
             out.println("IOException");
             out.flush();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (Base64DecodingException e) {
+            e.printStackTrace();
         }
     }
 
@@ -143,5 +178,13 @@ class TCPIOThread implements Runnable {
 
     public String getClientName() {
         return clientName;
+    }
+
+    public String decypher_RSA(String codedMessage) {
+        return "";
+    }
+
+    public String decypher_AES(String codedMessage) throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException, NoSuchAlgorithmException, Base64DecodingException {
+        return aesChannel.decrypt(codedMessage);
     }
 }

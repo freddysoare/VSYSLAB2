@@ -1,18 +1,23 @@
 package client;
 
-import org.bouncycastle.util.encoders.Base64;
+import com.sun.org.apache.xml.internal.security.exceptions.Base64DecodingException;
+import util.AESChannel;
 import util.Config;
 import util.Keys;
 
-import java.io.*;
-import java.net.*;
-import java.nio.Buffer;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Queue;
-import java.util.concurrent.*;
-import java.security.Key;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
+import java.io.*;
+import java.net.BindException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.*;
 
 
 public class Client implements IClientCli, Runnable {
@@ -35,6 +40,7 @@ public class Client implements IClientCli, Runnable {
     private String lastLookup;
     private ExecutorService executorService;
     private String name;
+    private AESChannel aesChannel;
 
     private ConcurrentLinkedQueue<String> queue;
 
@@ -69,6 +75,7 @@ public class Client implements IClientCli, Runnable {
             socket = new Socket(config.getString("chatserver.host"), config.getInt("chatserver.tcp.port"));
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+            aesChannel = new AESChannel(out);
         } catch (IOException ioe) {
             System.out.println("No connection to Server");
             try {
@@ -76,6 +83,10 @@ public class Client implements IClientCli, Runnable {
             } catch (IOException e) {
                 System.out.println("No connection to Server");
             }
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
         }
 
         queProducer = new Thread(new QueProducer(this));
@@ -101,6 +112,9 @@ public class Client implements IClientCli, Runnable {
                 if((client_message = user_in.readLine()) != null) {
 
                     String[] m = client_message.split(" ");
+                    if(client_message.equals("!warum")) {
+                        aesChannel.println("sheesh was ist das fuer 1 life");
+                    }else
                     if(client_message.equals("!quit")) {
                         this.exit();
                         return;
@@ -144,6 +158,18 @@ public class Client implements IClientCli, Runnable {
             }
         } catch (IOException exp) {
             System.out.println("No connection to Server");
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (Base64DecodingException e) {
+            e.printStackTrace();
         }
 
 
