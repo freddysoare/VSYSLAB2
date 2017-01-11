@@ -63,18 +63,18 @@ public class Chatserver implements IChatserverCli, Runnable {
             registry = LocateRegistry.getRegistry(config.getString("registry.host"),config.getInt("registry.port"));
             nameserver = (INameserverForChatserver) registry.lookup("root-nameserver");
         } catch (RemoteException ex) {
-            ex.printStackTrace();
+            userResponseStream.println("No connection to Root-NS");
             try {
                 this.exit();
             } catch (IOException e) {
-                e.printStackTrace();
+                userResponseStream.println(e.getMessage());
             }
         } catch (NotBoundException ex) {
-            ex.printStackTrace();
+            userResponseStream.println("No connection to Root-NS");
             try {
                 this.exit();
             } catch (IOException e) {
-                e.printStackTrace();
+                userResponseStream.println(ex.getMessage());
             }
         }
         //---Aufgabe 2

@@ -109,6 +109,7 @@ public class Client implements IClientCli, Runnable {
                         this.login(m[1],m[2]);
                     }
                     else if(client_message.equals("!logout")) {
+                        this.name = "";
                         this.logout();
                     }
                     else if(client_message.startsWith("!register") && m.length == 2) {
@@ -251,48 +252,52 @@ public class Client implements IClientCli, Runnable {
 
     @Override
     public String msg (String username, String message)throws IOException {
-        String ipadress;
-        lookup(username + " !");
 
-        lastLookup = null;
+        if(this.name != null && !this.name.equals("")) {
 
+            String ipadress;
+            lookup(username + " !");
 
-        while(lastLookup == null) {
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                System.out.println("No connection to Server");
-            }
-        }
-
-        ipadress = lastLookup;
+            lastLookup = null;
 
 
-        Socket privateSocket = null;
-
-        try {
-            String[] ipa = ipadress.split(":");
-            privateSocket = new Socket(ipa[0], Integer.parseInt(ipa[1]));
-            // create a reader to retrieve messages send by the server
-            BufferedReader privatServerReader = new BufferedReader(
-                    new InputStreamReader(privateSocket.getInputStream()));
-            // create a writer to send messages to the server
-            PrintWriter privatServerWriter = new PrintWriter(
-                    privateSocket.getOutputStream(), true);
-            // write provided user input to the socket
-            privatServerWriter.println(name +": " +message);
-            userResponseStream.println(username + " replied with " + privatServerReader.readLine()+".");
-
-
-        } catch (Exception e) {
-            userResponseStream.println("Wrong username or user not registered.");
-        } finally {
-            if (privateSocket != null && !privateSocket.isClosed())
+            while (lastLookup == null) {
                 try {
-                    privateSocket.close();
-                } catch (IOException e) {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
                     System.out.println("No connection to Server");
                 }
+            }
+
+            ipadress = lastLookup;
+
+
+            Socket privateSocket = null;
+
+            try {
+                String[] ipa = ipadress.split(":");
+                privateSocket = new Socket(ipa[0], Integer.parseInt(ipa[1]));
+                // create a reader to retrieve messages send by the server
+                BufferedReader privatServerReader = new BufferedReader(
+                        new InputStreamReader(privateSocket.getInputStream()));
+                // create a writer to send messages to the server
+                PrintWriter privatServerWriter = new PrintWriter(
+                        privateSocket.getOutputStream(), true);
+                // write provided user input to the socket
+                privatServerWriter.println(name + ": " + message);
+                userResponseStream.println(username + " replied with " + privatServerReader.readLine() + ".");
+
+
+            } catch (Exception e) {
+                userResponseStream.println("Wrong username or user not registered.");
+            } finally {
+                if (privateSocket != null && !privateSocket.isClosed())
+                    try {
+                        privateSocket.close();
+                    } catch (IOException e) {
+                        System.out.println("No connection to Server");
+                    }
+            }
         }
         //}
         //in_private
