@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import nameserver.INameserverForChatserver;
 import nameserver.exceptions.InvalidDomainException;
 import util.Config;
+import util.SecurityUtils;
 
 public class Chatserver implements IChatserverCli, Runnable {
 
@@ -57,6 +58,9 @@ public class Chatserver implements IChatserverCli, Runnable {
 		this.userResponseStream = userResponseStream;
         this.executorService = Executors.newCachedThreadPool();
         this.reader = new BufferedReader(new InputStreamReader(userRequestStream));
+
+        SecurityUtils.registerBouncyCastle();
+
 
         //+++Aufgabe 2
         try {

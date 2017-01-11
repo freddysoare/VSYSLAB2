@@ -17,7 +17,7 @@ class QueProducer implements Runnable {
     public void run() {
         try {
             while (!Thread.interrupted()) {
-                message = client.getIn().readLine();
+                message = client.getChannel().readLine();
                 if (message.startsWith("!public")) {
                     String m = message.substring(8, message.length());
                     client.setLastMessage(m);

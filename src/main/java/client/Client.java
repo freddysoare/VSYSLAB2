@@ -1,14 +1,10 @@
 package client;
 
-import com.sun.org.apache.xml.internal.security.exceptions.Base64DecodingException;
-import util.AESChannel;
-import util.Config;
-import util.Keys;
+import util.*;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.net.BindException;
 import java.net.ServerSocket;
@@ -17,6 +13,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.concurrent.*;
 
 
@@ -40,9 +37,22 @@ public class Client implements IClientCli, Runnable {
     private String lastLookup;
     private ExecutorService executorService;
     private String name;
-    private AESChannel aesChannel;
+
+    private Channel channel;
+    private BaseChannel baseChannel;
+    private Channel base64Channel;
+    private Channel rsaChannel;
+    private Channel aesChannel;
+    private String serverAnswer;
+
+    public void setServerAnswer(String serverAnswer)
+    {
+        this.serverAnswer = serverAnswer;
+    }
 
     private ConcurrentLinkedQueue<String> queue;
+
+    private Key hmac_key;
 
     //ToDO: java.con blocking que
 
@@ -69,13 +79,17 @@ public class Client implements IClientCli, Runnable {
         executorService = Executors.newCachedThreadPool();
         queue = new ConcurrentLinkedQueue<String>();
 
+        SecurityUtils.registerBouncyCastle();
 
         try {
             // Connect to Nakov Chat Server
             socket = new Socket(config.getString("chatserver.host"), config.getInt("chatserver.tcp.port"));
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-            aesChannel = new AESChannel(out);
+            baseChannel = new BaseChannel(in, out);
+            base64Channel = new Base64Channel(baseChannel);
+            channel = base64Channel;
+
         } catch (IOException ioe) {
             System.out.println("No connection to Server");
             try {
@@ -83,27 +97,45 @@ public class Client implements IClientCli, Runnable {
             } catch (IOException e) {
                 System.out.println("No connection to Server");
             }
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
         }
 
+    }
+
+    private void startQueueService()
+    {
         queProducer = new Thread(new QueProducer(this));
         queProducer.start();
 
         queConsumer = new Thread(new QueConsumer(this));
         queConsumer.start();
+    }
 
+    public void run_() {
+        try
+        {
+            while (true)
+            {
+                /*SecureChannel_server victor = new SecureChannel_server("alice.vienna.at",null,socket);
+                victor.authenticate();*/
+                //RSAChannel_2.authenticate_client("alice.vienna.at",socket);
+                this.authenticate("alice.vienna.at");
+                System.out.println("Authenticate send");
+            }
+
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public void run() {
         //try {
-            // Read messages from the server and print them
-            String client_message;
-            String server_message;
-            String output;
-            user_in = new BufferedReader(new InputStreamReader(userRequestStream));
+        // Read messages from the server and print them
+        String client_message;
+        String server_message;
+        String output;
+        user_in = new BufferedReader(new InputStreamReader(userRequestStream));
 
         try {
             //while ((message=in.readLine()) != null && !message.equals("***ServerShutdown") && !message.equals("***ClientShutdown") && running) {
@@ -113,64 +145,57 @@ public class Client implements IClientCli, Runnable {
 
                     String[] m = client_message.split(" ");
                     if(client_message.equals("!warum")) {
-                        aesChannel.println("sheesh was ist das fuer 1 life");
+                        channel.println("sheesh was ist das fuer 1 life");
                     }else
-                    if(client_message.equals("!quit")) {
-                        this.exit();
-                        return;
-                    }
-                    else if (client_message.startsWith("!login") && m.length == 3) {
-                        this.login(m[1],m[2]);
-                    }
-                    else if(client_message.equals("!logout")) {
-                        this.logout();
-                    }
-                    else if(client_message.startsWith("!register") && m.length == 2) {
-                        this.register(m[1]);
-                    }
-                    else if(client_message.startsWith("!lookup") && m.length >= 2) {
-                        String lookup = m[1];
-                        /**
-                        if(m.length == 3) {
-                            lookup += " "+m[2];
-                        }**/
-                        this.lookup(lookup);
-                    }
-                    else if(client_message.startsWith("!msg") && m.length == 3) {
-                        this.msg(m[1], m[2]);
-                    }
-                    else if (client_message.startsWith("!send")) {
-                        this.send(client_message);
-                    }
-                    else if(client_message.startsWith("!lastMsg") && m.length == 1) {
-                        userResponseStream.println(this.lastMsg());
-                    } else if(client_message.startsWith("!list") && m.length == 1) {
-                        this.list();
-                    } else if(client_message.startsWith("!exit")) {
-                        this.exit();
-                    }
-                    else {
-                        userResponseStream.println("Unkown command.");
-                        //client.getOut().println(message);
-                        //client.getOut().flush();
+                    {
+                        if(client_message.equals("!quit")) {
+                            this.exit();
+                            return;
+                        }
+                        else if (client_message.startsWith("!login") && m.length == 3) {
+                            this.login(m[1],m[2]);
+                        }
+                        else if(client_message.equals("!logout")) {
+                            this.logout();
+                        }
+                        else if(client_message.startsWith("!register") && m.length == 2) {
+                            this.register(m[1]);
+                        }
+                        else if(client_message.startsWith("!lookup") && m.length >= 2) {
+                            String lookup = m[1];
+                            /**
+                            if(m.length == 3) {
+                                lookup += " "+m[2];
+                            }**/
+                            this.lookup(lookup);
+                        }
+                        else if(client_message.startsWith("!msg") && m.length == 3) {
+                            this.msg(m[1], m[2]);
+                        }
+                        else if (client_message.startsWith("!send")) {
+                            this.send(client_message);
+                        }
+                        else if(client_message.startsWith("!lastMsg") && m.length == 1) {
+                            userResponseStream.println(this.lastMsg());
+                        } else if(client_message.startsWith("!list") && m.length == 1) {
+                            this.list();
+                        } else if(client_message.startsWith("!exit")) {
+                            this.exit();
+                        }else if (client_message.startsWith("!authenticate") && m.length == 2) {
+                            this.authenticate(m[1]);
+                        }
+                        else {
+                            userResponseStream.println("Unkown command.");
+                            //client.getOut().println(message);
+                            //client.getOut().flush();
+                        }
                     }
                 }
             }
         } catch (IOException exp) {
             System.out.println("No connection to Server");
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (Base64DecodingException e) {
-            e.printStackTrace();
         }
+
 
 
         try {
@@ -235,22 +260,22 @@ public class Client implements IClientCli, Runnable {
 
     @Override
     public String login (String username, String password)throws IOException {
-        out.println("!login "+username+" "+password);
-        out.flush();
+        channel.println("!login "+username+" "+password);
+        channel.flush();
         return "login";
     }
 
     @Override
     public String logout ()throws IOException {
-        out.println("!logout");
-        out.flush();
+        channel.println("!logout");
+        channel.flush();
         return null;
     }
 
     @Override
     public String send (String message)throws IOException {
-        out.println(message);
-        out.flush();
+        channel.println(message);
+        channel.flush();
         return null;
     }
 
@@ -306,7 +331,10 @@ public class Client implements IClientCli, Runnable {
             PrintWriter privatServerWriter = new PrintWriter(
                     privateSocket.getOutputStream(), true);
             // write provided user input to the socket
-            privatServerWriter.println(name +": " +message);
+            //String msg = name + ": " + SecurityUtils.createHMAC(message,getHMAC_Key()) + " " + message;
+            String msg = name + ": " + message;
+
+            privatServerWriter.println(msg);
             userResponseStream.println(username + " replied with " + privatServerReader.readLine()+".");
 
 
@@ -327,8 +355,8 @@ public class Client implements IClientCli, Runnable {
 
     @Override
     public String lookup (String username)throws IOException {
-        out.println("!lookup "+username);
-        out.flush();
+        channel.println("!lookup "+username);
+        channel.flush();
         return null;
     }
 
@@ -340,8 +368,8 @@ public class Client implements IClientCli, Runnable {
             tcpMessageRecieverThread = new Thread(new TCPMessageReciever(this));
             tcpMessageRecieverThread.start();
 
-            out.println("!register "+privateAddress);
-            out.flush();
+            channel.println("!register "+privateAddress);
+            channel.flush();
 
         } catch (BindException be) {
             userResponseStream.println("Connection Error");
@@ -358,12 +386,14 @@ public class Client implements IClientCli, Runnable {
         return lastMessage;
     }
 
-    public BufferedReader getIn() {
-        return in;
+    public Channel getChannel()
+    {
+        return channel;
     }
 
-    public void setIn(BufferedReader in) {
-        this.in = in;
+    public void setChannel(Channel channel)
+    {
+        this.channel = channel;
     }
 
     public String getLastLookup() {
@@ -372,14 +402,6 @@ public class Client implements IClientCli, Runnable {
 
     public void setLastLookup(String lastLookup) {
         this.lastLookup = lastLookup;
-    }
-
-    public PrintWriter getOut() {
-        return out;
-    }
-
-    public void setOut(PrintWriter out) {
-        this.out = out;
     }
 
     public String getLastMessage() {
@@ -430,38 +452,15 @@ public class Client implements IClientCli, Runnable {
         return config;
     }
 
-    String createHMAC(String message)
+    private Key getHMAC_Key() throws IOException
     {
-        Key secretKey = null;
-        Mac hMac = null;
-        try
+        if(hmac_key == null)
         {
-            secretKey = Keys.readSecretKey(new File(config.getString("hmac.key")));
-            hMac = Mac.getInstance("HmacSHA256");
-            hMac.init(secretKey);
+            hmac_key = Keys.readSecretKey(new File(config.getString("hmac.key")));
         }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-        catch (NoSuchAlgorithmException e)
-        {
-            e.printStackTrace();
-        }
-        catch (InvalidKeyException e)
-        {
-            e.printStackTrace();
-        }
-        // MESSAGE is the message to sign in bytes
-        hMac.update(message.getBytes());
-        return new String(hMac.doFinal());
-    }
+        return hmac_key;
 
-    public boolean check_HMAC(String message, String HMAC)
-    {
-        return createHMAC(message).equals(HMAC);
     }
-
 
 
     /**
@@ -470,8 +469,6 @@ public class Client implements IClientCli, Runnable {
      */
 
     public static void main(String[] args) {
-
-
         Client client;
         client = new Client(args[0], new Config("client"), System.in, System.out);
 
@@ -485,8 +482,80 @@ public class Client implements IClientCli, Runnable {
 
     @Override
     public String authenticate(String username) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        try
+        {
+            Channel rsaChannel = new RSAChannel(
+                    base64Channel,
+                    Keys.readPublicPEM(new File(config.getString("keys.dir") + "/chatserver.pub.pem")),
+                    Keys.readPrivatePEM(new File(config.getString("keys.dir") + "/" + username + ".pem"))
+            );
+
+            channel = rsaChannel;
+            //part1
+            byte[] clientChallenge = SecurityUtils.secureRandomNumber(32);
+
+            String msg = "!authenticate " + username + " " + new String(SecurityUtils.base64Encode(clientChallenge));
+
+            System.out.println("AuthenticateMsg: " + msg);
+            System.out.println("ByteLength: " + msg.getBytes().length);
+
+            rsaChannel.write(msg.getBytes());
+            rsaChannel.flush();
+
+            //part2
+
+            /*while(serverAnswer == null) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    System.out.println("No connection to Server");
+                }
+            }*/
+
+            String answer = rsaChannel.readLine();
+            String[] answers = answer.split(" ");
+
+            if (!Arrays.equals(SecurityUtils.base64Decode(answers[1].getBytes()), clientChallenge))
+            {
+                System.out.println("Client challenge doesn't match!");
+                return "Failure";
+            }
+
+            String serverChallenge = answers[2];
+            byte[] secretKey = SecurityUtils.base64Decode(answers[3].getBytes());
+            byte[] iv = SecurityUtils.base64Decode(answers[4].getBytes());
+            Key key = new SecretKeySpec(secretKey, "AES");
+            try
+            {
+                aesChannel = new AESChannel(base64Channel, key, iv);
+            }
+            catch (NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException e)
+            {
+                System.err.println("Couldn't open AESChannel");
+            }
+            channel = aesChannel;
+
+            channel.println(serverChallenge);
+            channel.flush();
+
+            startQueueService();
+
+
+        }
+        catch (NoSuchAlgorithmException e)
+        {
+            e.printStackTrace();
+        }
+        catch (NoSuchPaddingException e)
+        {
+            e.printStackTrace();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        return "authenticate";
     }
 
 
