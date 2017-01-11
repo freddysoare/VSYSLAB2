@@ -110,23 +110,6 @@ public class Client implements IClientCli, Runnable {
         queConsumer.start();
     }
 
-    public void run_() {
-        try
-        {
-            while (true)
-            {
-                /*SecureChannel_server victor = new SecureChannel_server("alice.vienna.at",null,socket);
-                victor.authenticate();*/
-                //RSAChannel_2.authenticate_client("alice.vienna.at",socket);
-                this.authenticate("alice.vienna.at");
-                System.out.println("Authenticate send");
-            }
-
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
     }
 
     public void run() {
@@ -152,6 +135,7 @@ public class Client implements IClientCli, Runnable {
                         this.login(m[1],m[2]);
                     }
                     else if(client_message.equals("!logout")) {
+                        this.name = "";
                         this.logout();
                     }
                     else if(client_message.startsWith("!register") && m.length == 2) {
@@ -190,7 +174,6 @@ public class Client implements IClientCli, Runnable {
         } catch (IOException exp) {
             System.out.println("No connection to Server");
         }
-
 
 
         try {
@@ -297,24 +280,27 @@ public class Client implements IClientCli, Runnable {
 
     @Override
     public String msg (String username, String message)throws IOException {
-        String ipadress;
-        lookup(username + " !");
 
-        lastLookup = null;
+        if(this.name != null && !this.name.equals("")) {
+
+            String ipadress;
+            lookup(username + " !");
+
+            lastLookup = null;
 
 
-        while(lastLookup == null) {
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                System.out.println("No connection to Server");
+            while (lastLookup == null) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    System.out.println("No connection to Server");
+                }
             }
-        }
 
-        ipadress = lastLookup;
+            ipadress = lastLookup;
 
 
-        Socket privateSocket = null;
+            Socket privateSocket = null;
 
         try {
             String[] ipa = ipadress.split(":");
@@ -341,15 +327,16 @@ public class Client implements IClientCli, Runnable {
             }
 
 
-        } catch (Exception e) {
-            userResponseStream.println("Wrong username or user not registered.");
-        } finally {
-            if (privateSocket != null && !privateSocket.isClosed())
-                try {
-                    privateSocket.close();
-                } catch (IOException e) {
-                    System.out.println("No connection to Server");
-                }
+            } catch (Exception e) {
+                userResponseStream.println("Wrong username or user not registered.");
+            } finally {
+                if (privateSocket != null && !privateSocket.isClosed())
+                    try {
+                        privateSocket.close();
+                    } catch (IOException e) {
+                        System.out.println("No connection to Server");
+                    }
+            }
         }
         //}
         //in_private
@@ -463,7 +450,11 @@ public class Client implements IClientCli, Runnable {
         }
         return hmac_key;
 
+    public boolean check_HMAC(String message, String HMAC)
+    {
+        return createHMAC(message).equals(HMAC);
     }
+
 
 
     /**
@@ -472,6 +463,8 @@ public class Client implements IClientCli, Runnable {
      */
 
     public static void main(String[] args) {
+
+
         Client client;
         client = new Client(args[0], new Config("client"), System.in, System.out);
 
