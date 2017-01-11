@@ -66,20 +66,10 @@ class TCPIOThread implements Runnable {
     public void run() {
         try {
             String clientCommand;
-            /*SecureChannel_client victor = new SecureChannel_client(new PrintStream(System.out),tcpSocket);
-            victor.authenticate();*/
-            //RSAChannel_2.authenticate_server(tcpSocket);
-            //byte[] read = channel.read();
-            //String wubdi = new String(read);
             while ((clientCommand = channel.readLine()) != null)  {
 
                 System.out.println("[SERVER] RECEIVED: " + clientCommand);
-                //System.out.println("[SERVER] DECODED: " + decypher_AES(clientCommand));
-                /*if(!loggedIn) {
-                    clientCommand = decypher_RSA(clientCommand);
-                } else {
-                    clientCommand = decypher_AES(clientCommand);
-                }*/
+
 
                 String[] c = clientCommand.split(" ");
                 if(loggedIn) {

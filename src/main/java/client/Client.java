@@ -144,51 +144,46 @@ public class Client implements IClientCli, Runnable {
                 if((client_message = user_in.readLine()) != null) {
 
                     String[] m = client_message.split(" ");
-                    if(client_message.equals("!warum")) {
-                        channel.println("sheesh was ist das fuer 1 life");
-                    }else
-                    {
-                        if(client_message.equals("!quit")) {
-                            this.exit();
-                            return;
-                        }
-                        else if (client_message.startsWith("!login") && m.length == 3) {
-                            this.login(m[1],m[2]);
-                        }
-                        else if(client_message.equals("!logout")) {
-                            this.logout();
-                        }
-                        else if(client_message.startsWith("!register") && m.length == 2) {
-                            this.register(m[1]);
-                        }
-                        else if(client_message.startsWith("!lookup") && m.length >= 2) {
-                            String lookup = m[1];
-                            /**
-                            if(m.length == 3) {
-                                lookup += " "+m[2];
-                            }**/
-                            this.lookup(lookup);
-                        }
-                        else if(client_message.startsWith("!msg") && m.length == 3) {
-                            this.msg(m[1], m[2]);
-                        }
-                        else if (client_message.startsWith("!send")) {
-                            this.send(client_message);
-                        }
-                        else if(client_message.startsWith("!lastMsg") && m.length == 1) {
-                            userResponseStream.println(this.lastMsg());
-                        } else if(client_message.startsWith("!list") && m.length == 1) {
-                            this.list();
-                        } else if(client_message.startsWith("!exit")) {
-                            this.exit();
-                        }else if (client_message.startsWith("!authenticate") && m.length == 2) {
-                            this.authenticate(m[1]);
-                        }
-                        else {
-                            userResponseStream.println("Unkown command.");
-                            //client.getOut().println(message);
-                            //client.getOut().flush();
-                        }
+                    if(client_message.equals("!quit")) {
+                        this.exit();
+                        return;
+                    }
+                    else if (client_message.startsWith("!login") && m.length == 3) {
+                        this.login(m[1],m[2]);
+                    }
+                    else if(client_message.equals("!logout")) {
+                        this.logout();
+                    }
+                    else if(client_message.startsWith("!register") && m.length == 2) {
+                        this.register(m[1]);
+                    }
+                    else if(client_message.startsWith("!lookup") && m.length >= 2) {
+                        String lookup = m[1];
+                        /**
+                         if(m.length == 3) {
+                         lookup += " "+m[2];
+                         }**/
+                        this.lookup(lookup);
+                    }
+                    else if(client_message.startsWith("!msg") && m.length == 3) {
+                        this.msg(m[1], m[2]);
+                    }
+                    else if (client_message.startsWith("!send")) {
+                        this.send(client_message);
+                    }
+                    else if(client_message.startsWith("!lastMsg") && m.length == 1) {
+                        userResponseStream.println(this.lastMsg());
+                    } else if(client_message.startsWith("!list") && m.length == 1) {
+                        this.list();
+                    } else if(client_message.startsWith("!exit")) {
+                        this.exit();
+                    }else if (client_message.startsWith("!authenticate") && m.length == 2) {
+                        this.authenticate(m[1]);
+                    }
+                    else {
+                        userResponseStream.println("Unkown command.");
+                        //client.getOut().println(message);
+                        //client.getOut().flush();
                     }
                 }
             }
@@ -331,11 +326,19 @@ public class Client implements IClientCli, Runnable {
             PrintWriter privatServerWriter = new PrintWriter(
                     privateSocket.getOutputStream(), true);
             // write provided user input to the socket
-            //String msg = name + ": " + SecurityUtils.createHMAC(message,getHMAC_Key()) + " " + message;
-            String msg = name + ": " + message;
+            String hmac = SecurityUtils.createHMAC(message, getHMAC_Key());
+            String msg = username + ": " + SecurityUtils.base64Encode(hmac) + " " + message;
 
             privatServerWriter.println(msg);
-            userResponseStream.println(username + " replied with " + privatServerReader.readLine()+".");
+            String answer = privatServerReader.readLine();
+            if( !answer.startsWith("!ack"))
+            {
+                userResponseStream.println("The message you send was tampered with!");
+            }
+            else
+            {
+                userResponseStream.println(username + " replied with " + answer + ".");
+            }
 
 
         } catch (Exception e) {
@@ -452,7 +455,7 @@ public class Client implements IClientCli, Runnable {
         return config;
     }
 
-    private Key getHMAC_Key() throws IOException
+    Key getHMAC_Key() throws IOException
     {
         if(hmac_key == null)
         {
@@ -496,9 +499,6 @@ public class Client implements IClientCli, Runnable {
 
             String msg = "!authenticate " + username + " " + new String(SecurityUtils.base64Encode(clientChallenge));
 
-            System.out.println("AuthenticateMsg: " + msg);
-            System.out.println("ByteLength: " + msg.getBytes().length);
-
             rsaChannel.write(msg.getBytes());
             rsaChannel.flush();
 
@@ -538,21 +538,19 @@ public class Client implements IClientCli, Runnable {
             channel.println(serverChallenge);
             channel.flush();
 
+            userResponseStream.println("Successfully authenticated!");
+
             startQueueService();
 
 
         }
-        catch (NoSuchAlgorithmException e)
-        {
-            e.printStackTrace();
-        }
-        catch (NoSuchPaddingException e)
+        catch (NoSuchAlgorithmException | NoSuchPaddingException e)
         {
             e.printStackTrace();
         }
         catch (IOException e)
         {
-            e.printStackTrace();
+            userResponseStream.println("User was not found!");
         }
 
         return "authenticate";

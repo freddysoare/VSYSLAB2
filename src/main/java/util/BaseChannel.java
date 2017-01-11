@@ -79,7 +79,14 @@ public class BaseChannel extends Channel
     {
         if (in != null && super.isOpen())
         {
-            return in.readLine().getBytes();
+            try
+            {
+                return in.readLine().getBytes();
+            }
+            catch (NullPointerException e)
+            {
+                return new byte[0];
+            }
         }
         else
         {

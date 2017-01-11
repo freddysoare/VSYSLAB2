@@ -1,8 +1,13 @@
 package client;
 
+import util.SecurityUtils;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 /**
  * Created by alfredmincinoiu on 26/12/2016.
@@ -27,14 +32,29 @@ class TCPMessageReciever implements Runnable {
                 in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
                 String clientCommand = in.readLine();
-                client.getUserResponseStream().println(clientCommand);
-                out.println("!ack");
+                String[] c = clientCommand.split(" ");
+                String receivedHMAC = SecurityUtils.base64Decode(c[1]);
+                if (!SecurityUtils.check_HMAC(c[2], receivedHMAC, client.getHMAC_Key()))
+                {
+                    out.println(receivedHMAC + " !tampered " + c[2]);
+                    out.flush();
+                    client.getUserResponseStream().println("!tampered with "+c[2]);
+                }
+                else
+                {
+                    client.getUserResponseStream().println(clientCommand);
+                    out.println("!ack");
+                }
                 out.flush();
                 in.close();
                 out.close();
                 clientSocket.close();
             } catch (IOException e) {
                 System.out.println("No connection to Server");
+            }
+            catch (NoSuchAlgorithmException | InvalidKeyException e)
+            {
+                e.printStackTrace();
             }
         }
     }
