@@ -67,10 +67,6 @@ class TCPIOThread implements Runnable {
         try {
             String clientCommand;
             while ((clientCommand = channel.readLine()) != null)  {
-
-                System.out.println("[SERVER] RECEIVED: " + clientCommand);
-
-
                 String[] c = clientCommand.split(" ");
                 if(loggedIn) {
                     if (clientCommand.startsWith("!lookup") && c.length >= 2) {

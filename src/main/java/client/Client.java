@@ -77,7 +77,7 @@ public class Client implements IClientCli, Runnable {
         this.userResponseStream = userResponseStream;
         this.udpMessageReciever = new UDPMessageReciever(this);
         executorService = Executors.newCachedThreadPool();
-        queue = new ConcurrentLinkedQueue<String>();
+        queue = new ConcurrentLinkedQueue<>();
 
         SecurityUtils.registerBouncyCastle();
 
@@ -110,7 +110,6 @@ public class Client implements IClientCli, Runnable {
         queConsumer.start();
     }
 
-    }
 
     public void run() {
         //try {
@@ -444,15 +443,12 @@ public class Client implements IClientCli, Runnable {
 
     Key getHMAC_Key() throws IOException
     {
-        if(hmac_key == null)
+        if (hmac_key == null)
         {
             hmac_key = Keys.readSecretKey(new File(config.getString("hmac.key")));
         }
         return hmac_key;
 
-    public boolean check_HMAC(String message, String HMAC)
-    {
-        return createHMAC(message).equals(HMAC);
     }
 
 
