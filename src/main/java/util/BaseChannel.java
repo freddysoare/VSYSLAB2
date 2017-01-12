@@ -85,7 +85,7 @@ public class BaseChannel extends Channel
             }
             catch (NullPointerException e)
             {
-                return new byte[1];
+                return new byte[4];
             }
         }
         else
