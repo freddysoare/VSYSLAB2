@@ -33,12 +33,14 @@ class TCPMessageReciever implements Runnable {
                 out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
                 String clientCommand = in.readLine();
                 String[] c = clientCommand.split(" ");
-                String receivedHMAC = SecurityUtils.base64Decode(c[1]);
-                if (!SecurityUtils.check_HMAC(c[2], receivedHMAC, client.getHMAC_Key()))
+                String receivedHMAC = SecurityUtils.base64Decode(c[0]);
+                String substring = clientCommand.substring(c[0].length() + c[1].length() + 2);
+
+                if (!SecurityUtils.check_HMAC(substring, receivedHMAC, client.getHMAC_Key()))
                 {
-                    out.println(receivedHMAC + " !tampered " + c[2]);
+                    out.println(receivedHMAC + " !tampered " + substring);
                     out.flush();
-                    client.getUserResponseStream().println("!tampered with "+c[2]);
+                    client.getUserResponseStream().println("!tampered with "+substring);
                 }
                 else
                 {

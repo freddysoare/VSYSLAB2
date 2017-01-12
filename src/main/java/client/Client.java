@@ -148,8 +148,9 @@ public class Client implements IClientCli, Runnable {
                          }**/
                         this.lookup(lookup);
                     }
-                    else if(client_message.startsWith("!msg") && m.length == 3) {
-                        this.msg(m[1], m[2]);
+                    else if(client_message.startsWith("!msg") && m.length >= 3) {
+                        String substring = client_message.substring(m[0].length() + m[1].length() + 2);
+                        this.msg(m[1], substring);
                     }
                     else if (client_message.startsWith("!send")) {
                         this.send(client_message);
@@ -312,7 +313,7 @@ public class Client implements IClientCli, Runnable {
                     privateSocket.getOutputStream(), true);
             // write provided user input to the socket
             String hmac = SecurityUtils.createHMAC(message, getHMAC_Key());
-            String msg = username + ": " + SecurityUtils.base64Encode(hmac) + " " + message;
+            String msg = SecurityUtils.base64Encode(hmac) + "!msg" + " " + message;
 
             privatServerWriter.println(msg);
             String answer = privatServerReader.readLine();
