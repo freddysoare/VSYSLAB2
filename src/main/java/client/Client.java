@@ -313,7 +313,7 @@ public class Client implements IClientCli, Runnable {
                     privateSocket.getOutputStream(), true);
             // write provided user input to the socket
             String hmac = SecurityUtils.createHMAC(message, getHMAC_Key());
-            String msg = SecurityUtils.base64Encode(hmac) + "!msg" + " " + message;
+            String msg = SecurityUtils.base64Encode(hmac) + " !msg" + " " + message;
 
             privatServerWriter.println(msg);
             String answer = privatServerReader.readLine();

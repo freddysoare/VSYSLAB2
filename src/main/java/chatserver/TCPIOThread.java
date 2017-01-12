@@ -49,15 +49,10 @@ class TCPIOThread implements Runnable {
                     Keys.readPrivatePEM(new File(chatserver.getConfig().getString("key")))
                     );
             channel = rsaChannel;
-            //aesChannel = new AESChannel(base64Channel);
         } catch (IOException e) {
             chatserver.getUserResponseStream().println("Server broke down");
         }
-        catch (NoSuchPaddingException e)
-        {
-            e.printStackTrace();
-        }
-        catch (NoSuchAlgorithmException e)
+        catch (NoSuchPaddingException | NoSuchAlgorithmException e)
         {
             e.printStackTrace();
         }

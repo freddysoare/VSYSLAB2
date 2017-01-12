@@ -73,16 +73,6 @@ public class RSAChannel extends Channel
         }
     }
 
-    private String encrypt(String msg) throws BadPaddingException, IllegalBlockSizeException, InvalidKeyException
-    {
-        if (encryptionKey != null)
-        {
-            encryption.init(Cipher.ENCRYPT_MODE, encryptionKey);
-            return new String(encryption.doFinal(msg.getBytes()));
-        }
-        else throw new InvalidKeyException("Key null");
-    }
-
     private byte[] encrypt(byte[] msg) throws BadPaddingException, IllegalBlockSizeException, InvalidKeyException
     {
         if (encryptionKey != null)
@@ -131,23 +121,6 @@ public class RSAChannel extends Channel
         {
             throw new ClosedChannelException();
         }
-    }
-
-    private String decrypt(String msg) throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException
-    {
-        if (decryptionKey != null)
-        {
-            decryption.init(Cipher.DECRYPT_MODE, decryptionKey);
-            System.out.println("BlockSize: "+ decryption.getBlockSize());
-            System.out.println("DataSize: "+msg.getBytes().length);
-            byte[] bytes = msg.getBytes();
-            final int blockSize = decryption.getBlockSize();
-
-
-            return new String(decryption.doFinal(bytes));
-
-        }
-        else throw new InvalidKeyException("Key null");
     }
 
     private byte[] decrypt(byte[] msg) throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException

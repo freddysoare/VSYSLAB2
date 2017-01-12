@@ -44,7 +44,7 @@ class TCPMessageReciever implements Runnable {
                 }
                 else
                 {
-                    client.getUserResponseStream().println(clientCommand);
+                    client.getUserResponseStream().println(substring);
                     out.println("!ack");
                 }
                 out.flush();
