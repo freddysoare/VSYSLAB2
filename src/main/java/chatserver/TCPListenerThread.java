@@ -35,8 +35,7 @@ public class TCPListenerThread extends Thread{
                 // read client requests
                 while ((request = reader.readLine()) != null) {
 
-                    System.out.println("Client sent the following request: "
-                            + request);
+                    System.out.println("Client sent the following request: " + request);
 
 					/*
 					 * check if request has the correct format: !ping

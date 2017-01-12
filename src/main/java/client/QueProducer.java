@@ -31,8 +31,9 @@ class QueProducer implements Runnable {
                     client.setName(m[1]);
                     client.getQueue().add(m[2]);
                     continue;
-                }
-                else {
+                } if (message.startsWith("!!!")) {
+                    continue;
+                } else {
                     client.getQueue().add(message);
                     continue;
                 }

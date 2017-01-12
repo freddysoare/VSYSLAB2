@@ -52,7 +52,7 @@ class TCPMessageReciever implements Runnable {
                 out.close();
                 clientSocket.close();
             } catch (IOException e) {
-                System.out.println("No connection to Server");
+                //System.out.println("No connection to Server");
             }
             catch (NoSuchAlgorithmException | InvalidKeyException e)
             {

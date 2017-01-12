@@ -36,6 +36,7 @@ public class Client implements IClientCli, Runnable {
     private String lastLookup;
     private ExecutorService executorService;
     private String name;
+    private boolean authenticated;
 
     private Channel channel;
     private BaseChannel baseChannel;
@@ -138,17 +139,19 @@ public class Client implements IClientCli, Runnable {
                         this.exit();
                         return;
                     }
+                    /** Aufgabe 1
                     else if (client_message.startsWith("!login") && m.length == 3) {
                         this.login(m[1],m[2]);
                     }
-                    else if(client_message.equals("!logout")) {
+                     **/
+                    else if(client_message.equals("!logout") && authenticated) {
                         this.name = "";
                         this.logout();
                     }
-                    else if(client_message.startsWith("!register") && m.length == 2) {
+                    else if(client_message.startsWith("!register") && m.length == 2 && authenticated) {
                         this.register(m[1]);
                     }
-                    else if(client_message.startsWith("!lookup") && m.length >= 2) {
+                    else if(client_message.startsWith("!lookup") && m.length >= 2 && authenticated) {
                         String lookup = m[1];
                         /**
                          if(m.length == 3) {
@@ -156,20 +159,20 @@ public class Client implements IClientCli, Runnable {
                          }**/
                         this.lookup(lookup);
                     }
-                    else if(client_message.startsWith("!msg") && m.length >= 3) {
+                    else if(client_message.startsWith("!msg") && m.length >= 3 && authenticated) {
                         String substring = client_message.substring(m[0].length() + m[1].length() + 2);
                         this.msg(m[1], substring);
                     }
-                    else if (client_message.startsWith("!send")) {
+                    else if (client_message.startsWith("!send") && authenticated) {
                         this.send(client_message);
                     }
-                    else if(client_message.startsWith("!lastMsg") && m.length == 1) {
+                    else if(client_message.startsWith("!lastMsg") && m.length == 1 && authenticated) {
                         userResponseStream.println(this.lastMsg());
-                    } else if(client_message.startsWith("!list") && m.length == 1) {
+                    } else if(client_message.startsWith("!list") && m.length == 1 && authenticated) {
                         this.list();
                     } else if(client_message.startsWith("!exit")) {
                         this.exit();
-                    }else if (client_message.startsWith("!authenticate") && m.length == 2) {
+                    }else if (client_message.startsWith("!authenticate") && m.length == 2 && !authenticated) {
                         this.authenticate(m[1]);
                     }
                     else {
@@ -258,6 +261,13 @@ public class Client implements IClientCli, Runnable {
         stopQueueService();
         channel = rsaChannel;
         userResponseStream.println("Successfully logged out.");
+        authenticated = false;
+        if(tcpMessageRecieverThread != null) {
+            tcpMessageRecieverThread.interrupt();
+        }
+        if(privateServerSocket != null) {
+            privateServerSocket.close();
+        }
         return null;
     }
 
@@ -542,6 +552,7 @@ public class Client implements IClientCli, Runnable {
             userResponseStream.println("Successfully authenticated!");
 
             startQueueService();
+            authenticated = true;
 
 
         }
