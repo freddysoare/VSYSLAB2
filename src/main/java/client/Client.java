@@ -281,7 +281,7 @@ public class Client implements IClientCli, Runnable {
     @Override
     public String msg (String username, String message)throws IOException {
 
-        if(this.name != null && !this.name.equals("")) {
+        //if(this.name != null && !this.name.equals("")) {
 
             String ipadress;
             lookup(username + " !");
@@ -337,7 +337,7 @@ public class Client implements IClientCli, Runnable {
                         System.out.println("No connection to Server");
                     }
             }
-        }
+        //}
         //}
         //in_private
         return null;
