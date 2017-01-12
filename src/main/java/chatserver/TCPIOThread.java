@@ -87,8 +87,8 @@ class TCPIOThread implements Runnable {
                     } else if(clientCommand.startsWith("!logout")) {
                         chatserver.getRegister().remove(clientName);
                         loggedIn = false;
-                        channel.println("Successfully logged out.");
-                        channel.flush();
+                        /*channel.println("Successfully logged out.");
+                        channel.flush();*/
                         channel = rsaChannel;
                     } else if (clientCommand.startsWith("!send")) {
                         //ToDo Threadsave Arraylist

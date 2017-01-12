@@ -2,7 +2,6 @@ package client;
 
 import util.*;
 
-import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
@@ -108,6 +107,15 @@ public class Client implements IClientCli, Runnable {
 
         queConsumer = new Thread(new QueConsumer(this));
         queConsumer.start();
+
+    }
+
+    private void stopQueueService()
+    {
+        queProducer.interrupt();
+
+        queConsumer.interrupt();
+
     }
 
 
@@ -247,6 +255,9 @@ public class Client implements IClientCli, Runnable {
     public String logout ()throws IOException {
         channel.println("!logout");
         channel.flush();
+        stopQueueService();
+        channel = rsaChannel;
+        userResponseStream.println("Successfully logged out.");
         return null;
     }
 
