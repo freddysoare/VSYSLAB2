@@ -1,0 +1,2 @@
+Die gesamte, geforderte Funktionalitaet ist nach bestem Wissen und Gewissen zur Zufriedenheit der LVA Leitung erfolgreich implementiert und getestet.
+Einzige Ueberlegung: Der Befehl !list ist mit der geforderten Art der verschluesselten Kommunikation so nicht mehr weiter nutzbar (ein nicht authentifizierter Nutzer kann auf !list nicht zugreifen).
